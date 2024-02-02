@@ -1,0 +1,55 @@
+---
+title: RNM Classes
+---
+classDiagram
+
+    class PandaController{
+        + Tuple joint_states
+        + Trajectory trajectory
+        - joint_state_publisher
+        + ismoving()
+        + update_trajectory(new_trajectory)
+        + __publish_state(state)
+    }
+    class PandaModel{
+        - DHparams
+        - joint_limits
+        - transformation(joint_index)
+        - joint_position(joint_index)
+        - configuration_for_position(Vec3 pos)
+    }
+    class Trajectory{
+        + configuration(time)
+        + velocity(time)
+        + acceleration(time)
+    }
+    Trajectory <|-- QuinticSplineTrajectory
+
+    class QuinticSplineTrajectory{
+        + plan_through_path(path) 
+    }
+
+    class RegisteredModel{
+        + register(recorded_pointcloud, scanned_pointcloud)
+    }
+
+    class PathPlanner{
+        - plan_path(initial_config, target_config, obstacles)
+    }
+    class ConvexObstacle{
+        convex_hull
+        + is_inside(point)
+        + from_points(points)
+    }
+
+    class CameraModel{
+        + transformation()
+        - K_intrinsics
+        - extrinsics_for_config
+    }
+    class CameraController{
+        + record_images()
+        + calibrate_intrinsics()
+        + calibrate_handeye()
+        + compute_point_cloud()
+    }

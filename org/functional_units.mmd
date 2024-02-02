@@ -1,0 +1,28 @@
+flowchart TD
+    CamCal(Camera Calibration)
+    CamDriv(Camera Driver)
+    HandCal(Hand-Eye Calibration)
+    TrajPlan(Trajectory Planning)
+    PhanRec(Phantom Data Recording)
+    PhanReg(Phantom Data Registration)
+    NedPat(Needle Path Planning)
+    RobDriv(Robot Driver)
+    RobKin(Robot Kinematics)
+    %%MotComp(Motion Compensation)
+
+    CamDriv --> |RGBD image| HandCal
+    CamDriv --> |RGBD image| CamCal
+
+    CamCal --> |Calibration data| HandCal
+    HandCal --> |Calibration data| PhanRec
+    HandCal --> |Calibration data| TrajPlan
+
+    PhanRec --> | phantom pointcloud data| PhanReg
+    PhanRec --> | recording positions | TrajPlan
+    PhanReg --> | target and 3D-model| NedPat
+    NedPat --> |needle trajectory| TrajPlan
+    
+
+    TrajPlan <--> |perform kinematics| RobKin
+    TrajPlan --> |trajectory pose vector| RobDriv
+    RobDriv --> |current pose| TrajPlan

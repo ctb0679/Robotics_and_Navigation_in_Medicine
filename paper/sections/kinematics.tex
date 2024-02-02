@@ -1,0 +1,47 @@
+\subsection{Kinematics}
+In order to obtain transformation matrices and calculate joint positions from either given target points or joint position, a kinematics calculation is done. 
+The forward kinematics is computed using the so-called modified Denavit-Hartenberg parameters provided by Franka Emika \cite{panda-spec}. For each joint, the total transformation matrix is given by 
+\begin{equation}
+    {}^{n - 1}T_n  = \operatorname{Rot}_{x_{n-1}}(\alpha_{n-1}) \cdot \operatorname{Trans}_{x_{n-1}}(a_{n-1}) \cdot \operatorname{Rot}_{z_{n}}(\theta_n) \cdot \operatorname{Trans}_{z_{n}}(d_n) \\
+\end{equation}
+which evaluates to 
+$$
+\left[
+\begin{array}{ccc|c}
+    \cos\theta_n & -\sin\theta_n  & 0 & a_{n-1} \\
+    \sin\theta_n \cos\alpha_{n-1} & \cos\theta_n \cos\alpha_{n-1} & -\sin\alpha_{n-1} & -d_n \sin\alpha_{n-1} \\
+    \sin\theta_n\sin\alpha_{n-1} & \cos\theta_n \sin\alpha_{n-1} & \cos\alpha_{n-1} & d_n \cos\alpha_{n-1} \\
+    \hline
+    0 & 0 & 0 & 1
+  \end{array}
+\right]
+$$
+\cite{wiki-denavit-hartenberg}.
+To determine the homogeneous endeffector transformation, each transformation matrix is constructed and multiplied in order using Numpy. 
+
+The Panda robot has 7 controllable joint angles, which allows for a multitude of possible angles for most possible configurations. Our inverse kinematics uses an iterative algorithm (c.f. incremental inverse kinematics) to minimize the squared error starting from a possible configuration. 
+We used the SciPy sequential least squares programming (SLSQP)-algorithm for constrained quadratic minimization, using interval bounds for the robot configuration space given in \cite{panda-spec}. The error function to be minimized is given by
+$$
+{|{}_0T^7 - T_{\text{target}}|_F}^2
+$$, where the Frobenius norm is defined by ${|T|_F}^2 := \sum_{i,j} T_{ij}^2$. For gradient calculation, the algorithm uses numeric first-order approximation.
+
+\subsection{Trajectory Generation}
+For normal movement between positions, we use a combined trajectory consisting of two quintic polynomial segments with a linear segment in between. The panda robot allows only trajectories, which are approximately continuous in position, velocity, acceleration. This enforcement is computed using limits in the approximated velocity, acceleration and jerk \cite{panda-spec}.
+The first quintic section acts to accelerate the robot to the desired speed of the joint in the linear segment. The robot is then decelerated to zero velocity.
+To estimate the time of the segment, the critical (i.e., duration determining) joint determines the motion, i.e.
+$$
+    T_{\text{estimated}} = \operatorname{arg}_i(\frac{\delta q_i}{\dot{q}_{i, \text{max}}}).
+$$ where $\dot{q}_{i, \text{max}}$ denotes the maximum speed of the joint according to \cite{panda-spec} and $Δqᵢ$ refers to the configuration distance of joint $i$.
+For this $T_{\text{estimated}}$, linear joint speeds are calculated. The first quintic polynomial $p₁$ is now calculated to satisfy
+\begin{align*}
+    p_1(0) &= q_0 \\
+    \dot{p}_1(0) &= 0 \\
+    \ddot{p}_1(0) &= 0 \\
+    \Ddot{p}_1(0) &= 0 \\
+    \dot{p}_1(T_{\text{speedup}}) &= v_{\text{linear}} \\
+    \ddot{p}_1(T_{\text{speedup}}) &= 0
+\end{align*}
+where $T_{\text{speedup}}$ is estimated to fit the maximum acceleration.
+% todo
+
+\subsection{Needle Insertion}
